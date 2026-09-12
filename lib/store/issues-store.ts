@@ -9,6 +9,7 @@ import type {
   Issue,
   IssuePriority,
   IssueStatus,
+  KnowledgeSection,
   NewIssueInput,
 } from "@/lib/types";
 
@@ -16,6 +17,7 @@ interface IssuesState {
   issues: Issue[];
   activityLog: ActivityLogEntry[];
   settings: AppSettings | null;
+  knowledgeSections: KnowledgeSection[];
   loading: boolean;
   initialized: boolean;
   init: () => Promise<void>;
@@ -28,6 +30,12 @@ interface IssuesState {
   archiveIssue: (id: string, archived: boolean) => Promise<{ error?: string }>;
   deleteIssue: (id: string) => Promise<{ error?: string }>;
   updateSettings: (patch: Partial<AppSettings>) => Promise<{ error?: string }>;
+  addKnowledgeSection: (title: string, content: string) => Promise<{ error?: string }>;
+  updateKnowledgeSection: (
+    id: string,
+    patch: Partial<Pick<KnowledgeSection, "title" | "content" | "sort_order">>
+  ) => Promise<{ error?: string }>;
+  deleteKnowledgeSection: (id: string) => Promise<{ error?: string }>;
 }
 
 const supabase = createClient();
@@ -37,6 +45,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   issues: [],
   activityLog: [],
   settings: null,
+  knowledgeSections: [],
   loading: true,
   initialized: false,
 
@@ -44,7 +53,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true, loading: true });
 
-    const [issuesRes, activityRes, settingsRes] = await Promise.all([
+    const [issuesRes, activityRes, settingsRes, knowledgeRes] = await Promise.all([
       supabase.from("issues").select("*").order("created_at", { ascending: false }),
       supabase
         .from("activity_log")
@@ -52,12 +61,14 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         .order("created_at", { ascending: false })
         .limit(200),
       supabase.from("app_settings").select("*").eq("id", "default").maybeSingle(),
+      supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
     ]);
 
     set({
       issues: (issuesRes.data as Issue[]) ?? [],
       activityLog: (activityRes.data as ActivityLogEntry[]) ?? [],
       settings: (settingsRes.data as AppSettings | null) ?? null,
+      knowledgeSections: (knowledgeRes.data as KnowledgeSection[]) ?? [],
       loading: false,
     });
 
@@ -117,6 +128,42 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         (payload) => {
           const row = payload.new as AppSettings;
           set({ settings: row });
+        }
+      )
+      .subscribe();
+
+    supabase
+      .channel("knowledge-sections-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "knowledge_sections" },
+        (payload) => {
+          set((state) => {
+            if (payload.eventType === "INSERT") {
+              const row = payload.new as KnowledgeSection;
+              if (state.knowledgeSections.some((s) => s.id === row.id)) return state;
+              return {
+                knowledgeSections: [...state.knowledgeSections, row].sort(
+                  (a, b) => a.sort_order - b.sort_order
+                ),
+              };
+            }
+            if (payload.eventType === "UPDATE") {
+              const row = payload.new as KnowledgeSection;
+              return {
+                knowledgeSections: state.knowledgeSections
+                  .map((s) => (s.id === row.id ? row : s))
+                  .sort((a, b) => a.sort_order - b.sort_order),
+              };
+            }
+            if (payload.eventType === "DELETE") {
+              const oldRow = payload.old as Partial<KnowledgeSection>;
+              return {
+                knowledgeSections: state.knowledgeSections.filter((s) => s.id !== oldRow.id),
+              };
+            }
+            return state;
+          });
         }
       )
       .subscribe();
@@ -187,6 +234,34 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     set((state) => ({
       settings: state.settings ? { ...state.settings, ...patch } : state.settings,
     }));
+    return {};
+  },
+
+  addKnowledgeSection: async (title, content) => {
+    const nextOrder = get().knowledgeSections.length
+      ? Math.max(...get().knowledgeSections.map((s) => s.sort_order)) + 1
+      : 0;
+    const { error } = await supabase
+      .from("knowledge_sections")
+      .insert({ title, content, sort_order: nextOrder });
+    if (error) return { error: error.message };
+    return {};
+  },
+
+  updateKnowledgeSection: async (id, patch) => {
+    const { error } = await supabase.from("knowledge_sections").update(patch).eq("id", id);
+    if (error) return { error: error.message };
+    set((state) => ({
+      knowledgeSections: state.knowledgeSections.map((s) =>
+        s.id === id ? { ...s, ...patch } : s
+      ),
+    }));
+    return {};
+  },
+
+  deleteKnowledgeSection: async (id) => {
+    const { error } = await supabase.from("knowledge_sections").delete().eq("id", id);
+    if (error) return { error: error.message };
     return {};
   },
 }));

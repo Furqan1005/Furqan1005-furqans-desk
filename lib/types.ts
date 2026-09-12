@@ -43,6 +43,15 @@ export interface AppSettings {
   updated_at: string;
 }
 
+export interface KnowledgeSection {
+  id: string;
+  title: string;
+  content: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type NewIssueInput = Pick<Issue, "title"> &
   Partial<
     Pick<

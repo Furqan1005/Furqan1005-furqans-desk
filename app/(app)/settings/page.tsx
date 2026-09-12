@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Plus, X } from "lucide-react";
+import { BookOpen, Download, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,13 +18,18 @@ import {
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type IssuePriority, type IssueStatus } from "@/lib/types";
 import { downloadCsv, issuesToCsv } from "@/lib/csv";
+import { buildBlueprintHtml, downloadBlueprint } from "@/lib/blueprint";
+import { KnowledgeSectionCard } from "@/components/knowledge/knowledge-section-card";
 
 export default function SettingsPage() {
   const settings = useIssuesStore((s) => s.settings);
   const issues = useIssuesStore((s) => s.issues);
   const activityLog = useIssuesStore((s) => s.activityLog);
   const updateSettings = useIssuesStore((s) => s.updateSettings);
+  const knowledgeSections = useIssuesStore((s) => s.knowledgeSections);
+  const addKnowledgeSection = useIssuesStore((s) => s.addKnowledgeSection);
   const [newCategory, setNewCategory] = useState("");
+  const [newSectionTitle, setNewSectionTitle] = useState("");
 
   const categories = settings?.categories ?? [];
 
@@ -75,6 +80,18 @@ export default function SettingsPage() {
       `furqans-desk-all-issues-${new Date().toISOString().slice(0, 10)}.csv`,
       issuesToCsv(issues)
     );
+  }
+
+  function exportBlueprint() {
+    downloadBlueprint(buildBlueprintHtml(knowledgeSections, categories));
+  }
+
+  async function addSection() {
+    const title = newSectionTitle.trim();
+    if (!title) return;
+    const { error } = await addKnowledgeSection(title, "");
+    if (error) toast.error(error);
+    else setNewSectionTitle("");
   }
 
   return (
@@ -171,10 +188,40 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Business Knowledge</CardTitle>
+          <CardDescription>
+            Terms, workflows, systems, and processes Desk AI uses to answer questions accurately.
+            Write these in your own words - Desk AI reads them verbatim.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {knowledgeSections.map((section) => (
+            <KnowledgeSectionCard key={section.id} section={section} />
+          ))}
+          {knowledgeSections.length === 0 && (
+            <p className="text-sm text-muted-foreground">No knowledge sections yet.</p>
+          )}
+          <div className="flex gap-2 pt-1">
+            <Input
+              value={newSectionTitle}
+              onChange={(e) => setNewSectionTitle(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSection())}
+              placeholder="New section title, e.g. Returns Process"
+            />
+            <Button onClick={addSection} size="sm">
+              <Plus />
+              Add section
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Export data</CardTitle>
           <CardDescription>Download everything stored in your desk.</CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-2">
+        <CardContent className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={exportCsv}>
             <Download />
             All issues (CSV)
@@ -182,6 +229,10 @@ export default function SettingsPage() {
           <Button variant="outline" size="sm" onClick={exportJson}>
             <Download />
             Full export (JSON)
+          </Button>
+          <Button variant="secondary" size="sm" onClick={exportBlueprint}>
+            <BookOpen />
+            Download Blueprint
           </Button>
         </CardContent>
       </Card>

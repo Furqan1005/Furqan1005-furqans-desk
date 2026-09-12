@@ -53,7 +53,8 @@ export default function DeskAiPage() {
       <div>
         <h1 className="text-lg font-semibold">Desk AI</h1>
         <p className="text-sm text-muted-foreground">
-          Ask about your current issues - overdue items, who&apos;s assigned what, and more.
+          Ask about your current issues, or your business terms and processes - JEMR, EMR,
+          order flow, customer codes. Grounded in Settings → Business Knowledge.
         </p>
       </div>
 
@@ -65,7 +66,7 @@ export default function DeskAiPage() {
           <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
             <Sparkles className="size-6 text-primary" />
             <p>Try: &quot;What&apos;s overdue right now?&quot;</p>
-            <p>or: &quot;Summarize what Kaushal is working on.&quot;</p>
+            <p>or: &quot;What is JEMR?&quot; / &quot;Walk me through the order flow.&quot;</p>
           </div>
         )}
         <div className="flex flex-col gap-3">

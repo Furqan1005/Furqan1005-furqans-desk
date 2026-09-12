@@ -4,7 +4,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { getAnthropicClient, AI_MODEL, extractText } from "@/lib/ai/anthropic";
 import { isDueThisWeek, isOverdue } from "@/lib/issue-utils";
-import type { Issue } from "@/lib/types";
+import type { Issue, KnowledgeSection } from "@/lib/types";
 
 interface ChatBody {
   messages: { role: "user" | "assistant"; content: string }[];
@@ -28,12 +28,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No messages provided." }, { status: 400 });
   }
 
-  const { data: issuesData } = await supabase
-    .from("issues")
-    .select("*")
-    .eq("archived", false)
-    .order("created_at", { ascending: false });
+  const [{ data: issuesData }, { data: knowledgeData }] = await Promise.all([
+    supabase
+      .from("issues")
+      .select("*")
+      .eq("archived", false)
+      .order("created_at", { ascending: false }),
+    supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
+  ]);
   const issues = (issuesData as Issue[]) ?? [];
+  const knowledgeSections = (knowledgeData as KnowledgeSection[]) ?? [];
 
   const context = issues
     .map((i) => {
@@ -44,11 +48,26 @@ export async function POST(request: Request) {
     })
     .join("\n");
 
-  const system = `You are Desk AI, the assistant inside Furqan's Desk - a personal issue tracker.
-Answer questions about the current issue list below using only this data. Be concise and direct.
-If asked to do something outside answering/summarizing issue data, say you can only help with issues right now.
+  const knowledgeBase = knowledgeSections
+    .map((s) => `## ${s.title}\n${s.content}`)
+    .join("\n\n");
 
-Current open issues (${issues.length} not archived):
+  const system = `You are Desk AI, the assistant inside Furqan's Desk - a personal issue tracker
+for a jewelry business. You are also the user's business partner who deeply knows the company's
+terminology, systems, and processes described in the Business Knowledge Base below.
+
+Use the Business Knowledge Base to answer questions about terminology (e.g. what is JEMR/EMR/PDCM),
+the order flow, customer codes, priorities, and team roles. Use the Current Open Issues list to
+answer questions about what's currently broken, in progress, overdue, or assigned to someone.
+
+Only use what's written below - never invent process details, systems, or definitions that
+aren't stated here. If something isn't covered by either section, say you don't have that
+information yet and suggest it be added to Business Knowledge in Settings.
+
+=== BUSINESS KNOWLEDGE BASE ===
+${knowledgeBase || "(no knowledge base sections have been added yet)"}
+
+=== CURRENT OPEN ISSUES (${issues.length} not archived) ===
 ${context || "(no issues yet)"}`;
 
   try {
