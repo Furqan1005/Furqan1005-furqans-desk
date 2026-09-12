@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -32,8 +32,24 @@ interface Suggestion {
   reason?: string;
 }
 
-export function NewIssueDialog() {
-  const [open, setOpen] = useState(false);
+interface NewIssueDialogProps {
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialDeadline?: string;
+}
+
+export function NewIssueDialog({
+  trigger,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen,
+  initialDeadline,
+}: NewIssueDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? setControlledOpen! : setInternalOpen;
+
   const addIssue = useIssuesStore((s) => s.addIssue);
   const settings = useIssuesStore((s) => s.settings);
   const categories = settings?.categories ?? [];
@@ -45,7 +61,7 @@ export function NewIssueDialog() {
   const [priority, setPriority] = useState<IssuePriority>(settings?.default_priority ?? "Medium");
   const [assignedTo, setAssignedTo] = useState("");
   const [startDate, setStartDate] = useState("");
-  const [deadline, setDeadline] = useState("");
+  const [deadline, setDeadline] = useState(initialDeadline ?? "");
   const [remarks, setRemarks] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -93,7 +109,7 @@ export function NewIssueDialog() {
     setPriority(settings?.default_priority ?? "Medium");
     setAssignedTo("");
     setStartDate("");
-    setDeadline("");
+    setDeadline(initialDeadline ?? "");
     setRemarks("");
     setSuggestion(null);
     setDismissed(false);
@@ -142,12 +158,16 @@ export function NewIssueDialog() {
         if (!v) resetForm();
       }}
     >
-      <DialogTrigger asChild>
-        <Button size="sm">
-          <Plus />
-          New Issue
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          {trigger ?? (
+            <Button size="sm">
+              <Plus />
+              New Issue
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>New issue</DialogTitle>

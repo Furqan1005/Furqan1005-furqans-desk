@@ -13,12 +13,13 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { PriorityBadge } from "@/components/issues/priority-badge";
 import { StatusBadge } from "@/components/issues/status-badge";
+import { NewIssueDialog } from "@/components/issues/new-issue-dialog";
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { cn } from "@/lib/utils";
 import type { Issue } from "@/lib/types";
@@ -27,6 +28,7 @@ export default function CalendarPage() {
   const issues = useIssuesStore((s) => s.issues);
   const loading = useIssuesStore((s) => s.loading);
   const [month, setMonth] = useState(() => new Date());
+  const [addForDate, setAddForDate] = useState<string | null>(null);
 
   const issuesByDay = useMemo(() => {
     const map = new Map<string, Issue[]>();
@@ -50,7 +52,9 @@ export default function CalendarPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold">Calendar</h1>
-          <p className="text-sm text-muted-foreground">Issues plotted against their deadline.</p>
+          <p className="text-sm text-muted-foreground">
+            Issues plotted against their deadline. Hover a day and click + to add a reminder.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setMonth((m) => subMonths(m, 1))}>
@@ -89,18 +93,27 @@ export default function CalendarPage() {
                 <div
                   key={key}
                   className={cn(
-                    "min-h-24 border-b border-r border-border p-1.5 last:border-r-0",
+                    "group relative min-h-24 border-b border-r border-border p-1.5 transition-colors last:border-r-0 hover:bg-muted/30",
                     !inMonth && "bg-muted/20"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "mb-1 flex size-5 items-center justify-center rounded-full text-xs",
-                      isToday(day) && "bg-primary font-semibold text-primary-foreground",
-                      !inMonth && "text-muted-foreground/50"
-                    )}
-                  >
-                    {format(day, "d")}
+                  <div className="mb-1 flex items-center justify-between">
+                    <div
+                      className={cn(
+                        "flex size-5 items-center justify-center rounded-full text-xs transition-colors",
+                        isToday(day) && "bg-primary font-semibold text-primary-foreground",
+                        !inMonth && "text-muted-foreground/50"
+                      )}
+                    >
+                      {format(day, "d")}
+                    </div>
+                    <button
+                      onClick={() => setAddForDate(key)}
+                      aria-label={`Add issue with deadline ${key}`}
+                      className="flex size-5 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all duration-150 hover:bg-primary hover:text-primary-foreground group-hover:opacity-100"
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
                   </div>
                   <div className="flex flex-col gap-1">
                     {visible.map((issue) => (
@@ -127,6 +140,13 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      <NewIssueDialog
+        key={addForDate ?? "none"}
+        open={addForDate !== null}
+        onOpenChange={(v) => !v && setAddForDate(null)}
+        initialDeadline={addForDate ?? undefined}
+      />
     </div>
   );
 }
@@ -137,7 +157,7 @@ function IssueChip({ issue, full }: { issue: Issue; full?: boolean }) {
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "w-full truncate rounded border-l-2 bg-secondary px-1.5 py-0.5 text-left text-[11px] font-medium text-secondary-foreground hover:opacity-80",
+            "w-full truncate rounded border-l-2 bg-secondary px-1.5 py-0.5 text-left text-[11px] font-medium text-secondary-foreground transition-all hover:-translate-y-px hover:opacity-80 hover:shadow-sm",
             issue.priority === "Critical" && "border-l-destructive",
             issue.priority === "High" && "border-l-warning",
             issue.priority === "Medium" && "border-l-primary",

@@ -21,8 +21,12 @@ export function SummaryCards({
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.label}>
+      {items.map((item, i) => (
+        <Card
+          key={item.label}
+          className="hover-lift fade-in-up"
+          style={{ animationDelay: `${i * 60}ms` }}
+        >
           <CardHeader className="pb-0">
             <CardTitle className="text-xs font-medium text-muted-foreground">
               {item.label}
