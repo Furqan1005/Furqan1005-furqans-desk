@@ -1,0 +1,198 @@
+"use client";
+
+import { useState } from "react";
+import { toast } from "sonner";
+import { MoreHorizontal, Archive, ArchiveRestore, Trash2, Pencil } from "lucide-react";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PriorityBadge } from "./priority-badge";
+import { EditIssueDialog } from "./edit-issue-dialog";
+import { useIssuesStore, describeStatusChange, describePriorityChange } from "@/lib/store/issues-store";
+import { formatDate, isOverdue } from "@/lib/issue-utils";
+import { PRIORITY_OPTIONS, STATUS_OPTIONS, type Issue, type IssuePriority, type IssueStatus } from "@/lib/types";
+
+export function IssueTable({
+  issues,
+  emptyMessage = "No issues here.",
+}: {
+  issues: Issue[];
+  emptyMessage?: string;
+}) {
+  const updateIssue = useIssuesStore((s) => s.updateIssue);
+  const archiveIssue = useIssuesStore((s) => s.archiveIssue);
+  const deleteIssue = useIssuesStore((s) => s.deleteIssue);
+  const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+
+  async function handleStatusChange(issue: Issue, next: IssueStatus) {
+    if (next === issue.status) return;
+    const patch: Partial<Issue> = { status: next };
+    if (next === "Fixed" && !issue.fixed_date) {
+      patch.fixed_date = new Date().toISOString().slice(0, 10);
+    }
+    const { error } = await updateIssue(issue.id, patch, describeStatusChange(issue.status, next));
+    if (error) toast.error(error);
+  }
+
+  async function handlePriorityChange(issue: Issue, next: IssuePriority) {
+    if (next === issue.priority) return;
+    const { error } = await updateIssue(
+      issue.id,
+      { priority: next },
+      describePriorityChange(issue.priority, next)
+    );
+    if (error) toast.error(error);
+  }
+
+  async function handleArchiveToggle(issue: Issue) {
+    const { error } = await archiveIssue(issue.id, !issue.archived);
+    if (error) toast.error(error);
+  }
+
+  async function handleDelete(issue: Issue) {
+    if (!confirm(`Delete "${issue.title}"? This cannot be undone.`)) return;
+    const { error } = await deleteIssue(issue.id);
+    if (error) toast.error(error);
+    else toast.success("Issue deleted.");
+  }
+
+  if (issues.length === 0) {
+    return (
+      <div className="flex items-center justify-center rounded-lg border border-dashed border-border py-16 text-sm text-muted-foreground">
+        {emptyMessage}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="overflow-hidden rounded-lg border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="min-w-48">Title</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Assigned to</TableHead>
+              <TableHead>Deadline</TableHead>
+              <TableHead className="w-10" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {issues.map((issue) => (
+              <TableRow key={issue.id}>
+                <TableCell className="max-w-80 whitespace-normal font-medium">
+                  {issue.title}
+                  {isOverdue(issue) && (
+                    <Badge variant="destructive" className="ml-2 align-middle">
+                      Overdue
+                    </Badge>
+                  )}
+                  {issue.remarks && (
+                    <p className="mt-0.5 text-xs font-normal text-muted-foreground line-clamp-1">
+                      {issue.remarks}
+                    </p>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{issue.category ?? "—"}</TableCell>
+                <TableCell>
+                  <Select
+                    value={issue.status}
+                    onValueChange={(v) => handleStatusChange(issue, v as IssueStatus)}
+                  >
+                    <SelectTrigger size="sm" className="h-8 w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={issue.priority}
+                    onValueChange={(v) => handlePriorityChange(issue, v as IssuePriority)}
+                  >
+                    <SelectTrigger size="sm" className="h-8 w-28">
+                      <SelectValue>
+                        <PriorityBadge priority={issue.priority} />
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRIORITY_OPTIONS.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {issue.assigned_to ?? "Unassigned"}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{formatDate(issue.deadline)}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => setEditingIssue(issue)}>
+                        <Pencil />
+                        Edit details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleArchiveToggle(issue)}>
+                        {issue.archived ? <ArchiveRestore /> : <Archive />}
+                        {issue.archived ? "Unarchive" : "Archive"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem variant="destructive" onSelect={() => handleDelete(issue)}>
+                        <Trash2 />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {editingIssue && (
+        <EditIssueDialog
+          issue={editingIssue}
+          open={!!editingIssue}
+          onOpenChange={(open) => !open && setEditingIssue(null)}
+        />
+      )}
+    </>
+  );
+}
