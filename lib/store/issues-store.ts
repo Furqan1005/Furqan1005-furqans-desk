@@ -273,3 +273,11 @@ export function describeStatusChange(from: IssueStatus, to: IssueStatus) {
 export function describePriorityChange(from: IssuePriority, to: IssuePriority) {
   return `Priority changed: ${from} -> ${to}`;
 }
+
+export function describeAssigneeChange(from: string | null, to: string | null) {
+  return `Reassigned: ${from || "Unassigned"} -> ${to || "Unassigned"}`;
+}
+
+export function describeDeadlineChange(from: string | null, to: string | null) {
+  return `Deadline changed: ${from || "none"} -> ${to || "none"}`;
+}

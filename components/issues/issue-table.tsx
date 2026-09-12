@@ -29,8 +29,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PriorityBadge } from "./priority-badge";
 import { EditIssueDialog } from "./edit-issue-dialog";
+import { AssigneeCell } from "./assignee-cell";
+import { DeadlineCell } from "./deadline-cell";
 import { useIssuesStore, describeStatusChange, describePriorityChange } from "@/lib/store/issues-store";
-import { formatDate, isOverdue } from "@/lib/issue-utils";
+import { isOverdue } from "@/lib/issue-utils";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type Issue, type IssuePriority, type IssueStatus } from "@/lib/types";
 
 export function IssueTable({
@@ -153,10 +155,12 @@ export function IssueTable({
                     </SelectContent>
                   </Select>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {issue.assigned_to ?? "Unassigned"}
+                <TableCell>
+                  <AssigneeCell issue={issue} />
                 </TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(issue.deadline)}</TableCell>
+                <TableCell>
+                  <DeadlineCell issue={issue} />
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
