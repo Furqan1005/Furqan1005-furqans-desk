@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { Sparkles, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { IssueFilterState } from "./issue-filters";
 import { EMPTY_FILTERS } from "./issue-filters";
+import { parseSearchQueryLocally } from "@/lib/nl-search";
 
 export function AiSearchBar({
   categories,
@@ -21,9 +21,40 @@ export function AiSearchBar({
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
+  function handleChange(value: string) {
+    setQuery(value);
+    if (!value.trim()) {
+      // Clearing the box should immediately show every issue again,
+      // not leave a stale filter applied from the last search.
+      onParsed(EMPTY_FILTERS);
+    }
+  }
+
+  function clear() {
+    setQuery("");
+    onParsed(EMPTY_FILTERS);
+  }
+
+  function applyLocalParse() {
+    const parsed = parseSearchQueryLocally(query, { categories, assignees });
+    onParsed({
+      ...EMPTY_FILTERS,
+      search: parsed.search ?? "",
+      status: parsed.status ?? "all",
+      priority: parsed.priority ?? "all",
+      category: parsed.category ?? "all",
+      assignee: parsed.assignee ?? "all",
+    });
+  }
+
   async function handleAsk(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
+
+    // Always resolve locally first - understands this team's own shorthand
+    // (P1-P4, "assigned to X") instantly and at zero cost.
+    const local = parseSearchQueryLocally(query, { categories, assignees });
+
     setLoading(true);
     try {
       const res = await fetch("/api/ai/search", {
@@ -31,20 +62,18 @@ export function AiSearchBar({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, categories, assignees }),
       });
-      if (!res.ok) throw new Error("parse-failed");
+      if (!res.ok) throw new Error("ai-unavailable");
       const data = await res.json();
       onParsed({
         ...EMPTY_FILTERS,
-        search: data.search ?? "",
-        status: data.status ?? "all",
-        priority: data.priority ?? "all",
-        category: data.category ?? "all",
-        assignee: data.assignee ?? "all",
+        search: data.search ?? local.search ?? "",
+        status: data.status ?? local.status ?? "all",
+        priority: data.priority ?? local.priority ?? "all",
+        category: data.category ?? local.category ?? "all",
+        assignee: data.assignee ?? local.assignee ?? "all",
       });
     } catch {
-      // Fall back to a plain substring search over the typed query.
-      onParsed({ ...EMPTY_FILTERS, search: query });
-      toast.message("Couldn't parse that as filters — searching as plain text instead.");
+      applyLocalParse();
     } finally {
       setLoading(false);
     }
@@ -55,11 +84,21 @@ export function AiSearchBar({
       <div className="relative flex-1">
         <Sparkles className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-primary" />
         <Input
-          className="pl-8"
-          placeholder='Try "open P1s assigned to Kaushal"'
+          className="pl-8 pr-8"
+          placeholder='e.g. open P1s assigned to Kaushal'
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
         />
+        {query && (
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Clear search"
+            className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <X className="size-4" />
+          </button>
+        )}
       </div>
       <Button type="submit" variant="secondary" size="sm" disabled={loading}>
         {loading ? "Thinking..." : "Ask"}
