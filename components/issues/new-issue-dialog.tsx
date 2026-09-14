@@ -25,6 +25,11 @@ import {
 } from "@/components/ui/select";
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type IssuePriority, type IssueStatus } from "@/lib/types";
+import {
+  IntakeDetailsFields,
+  EMPTY_INTAKE_DETAILS,
+  type IntakeDetailsValues,
+} from "./intake-details-fields";
 
 interface Suggestion {
   category?: string;
@@ -63,6 +68,7 @@ export function NewIssueDialog({
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState(initialDeadline ?? "");
   const [remarks, setRemarks] = useState("");
+  const [intake, setIntake] = useState<IntakeDetailsValues>(EMPTY_INTAKE_DETAILS);
   const [submitting, setSubmitting] = useState(false);
 
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
@@ -111,6 +117,7 @@ export function NewIssueDialog({
     setStartDate("");
     setDeadline(initialDeadline ?? "");
     setRemarks("");
+    setIntake(EMPTY_INTAKE_DETAILS);
     setSuggestion(null);
     setDismissed(false);
   }
@@ -139,6 +146,14 @@ export function NewIssueDialog({
       start_date: startDate || undefined,
       deadline: deadline || undefined,
       remarks: remarks.trim() || undefined,
+      requested_by: intake.requestedBy.trim() || undefined,
+      useful_for_team: intake.usefulForTeam.trim() || undefined,
+      reason_pain_point: intake.reasonPainPoint.trim() || undefined,
+      currently_software: intake.currentlySoftware.trim() || undefined,
+      source_software: intake.sourceSoftware.trim() || undefined,
+      request_type: intake.requestType.trim() || undefined,
+      duplicate: intake.duplicate.trim() || undefined,
+      auto_schedule: intake.autoSchedule.trim() || undefined,
     });
     setSubmitting(false);
     if (error) {
@@ -320,6 +335,12 @@ export function NewIssueDialog({
               placeholder="Notes, blockers, context…"
             />
           </div>
+
+          <IntakeDetailsFields
+            idPrefix="ni"
+            values={intake}
+            onChange={(patch) => setIntake((prev) => ({ ...prev, ...patch }))}
+          />
 
           <DialogFooter>
             <Button type="submit" disabled={submitting}>

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type Issue, type IssuePriority, type IssueStatus } from "@/lib/types";
+import { IntakeDetailsFields, type IntakeDetailsValues } from "./intake-details-fields";
 
 export function EditIssueDialog({
   issue,
@@ -47,6 +48,16 @@ export function EditIssueDialog({
   const [deadline, setDeadline] = useState(issue.deadline ?? "");
   const [fixedDate, setFixedDate] = useState(issue.fixed_date ?? "");
   const [remarks, setRemarks] = useState(issue.remarks ?? "");
+  const [intake, setIntake] = useState<IntakeDetailsValues>({
+    requestedBy: issue.requested_by ?? "",
+    usefulForTeam: issue.useful_for_team ?? "",
+    reasonPainPoint: issue.reason_pain_point ?? "",
+    currentlySoftware: issue.currently_software ?? "",
+    sourceSoftware: issue.source_software ?? "",
+    requestType: issue.request_type ?? "",
+    duplicate: issue.duplicate ?? "",
+    autoSchedule: issue.auto_schedule ?? "",
+  });
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -74,6 +85,14 @@ export function EditIssueDialog({
         deadline: deadline || null,
         fixed_date: fixedDate || null,
         remarks: remarks.trim() || null,
+        requested_by: intake.requestedBy.trim() || null,
+        useful_for_team: intake.usefulForTeam.trim() || null,
+        reason_pain_point: intake.reasonPainPoint.trim() || null,
+        currently_software: intake.currentlySoftware.trim() || null,
+        source_software: intake.sourceSoftware.trim() || null,
+        request_type: intake.requestType.trim() || null,
+        duplicate: intake.duplicate.trim() || null,
+        auto_schedule: intake.autoSchedule.trim() || null,
       },
       changes.join("; ")
     );
@@ -200,6 +219,13 @@ export function EditIssueDialog({
             <Label htmlFor="ei-remarks">Remarks</Label>
             <Textarea id="ei-remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
           </div>
+
+          <IntakeDetailsFields
+            idPrefix="ei"
+            values={intake}
+            onChange={(patch) => setIntake((prev) => ({ ...prev, ...patch }))}
+            defaultOpen={Object.values(intake).some(Boolean)}
+          />
 
           <DialogFooter>
             <Button type="submit" disabled={submitting}>

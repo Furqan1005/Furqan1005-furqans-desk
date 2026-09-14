@@ -182,6 +182,14 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         start_date: input.start_date ?? null,
         deadline: input.deadline ?? null,
         remarks: input.remarks ?? null,
+        requested_by: input.requested_by ?? null,
+        useful_for_team: input.useful_for_team ?? null,
+        reason_pain_point: input.reason_pain_point ?? null,
+        currently_software: input.currently_software ?? null,
+        source_software: input.source_software ?? null,
+        request_type: input.request_type ?? null,
+        duplicate: input.duplicate ?? null,
+        auto_schedule: input.auto_schedule ?? null,
       })
       .select()
       .single();

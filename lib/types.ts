@@ -26,6 +26,14 @@ export interface Issue {
   archived: boolean;
   created_at: string;
   updated_at: string;
+  requested_by: string | null;
+  useful_for_team: string | null;
+  reason_pain_point: string | null;
+  currently_software: string | null;
+  source_software: string | null;
+  request_type: string | null;
+  duplicate: string | null;
+  auto_schedule: string | null;
 }
 
 export interface ActivityLogEntry {
@@ -64,5 +72,34 @@ export type NewIssueInput = Pick<Issue, "title"> &
       | "start_date"
       | "deadline"
       | "remarks"
+      | "requested_by"
+      | "useful_for_team"
+      | "reason_pain_point"
+      | "currently_software"
+      | "source_software"
+      | "request_type"
+      | "duplicate"
+      | "auto_schedule"
     >
   >;
+
+export const INTAKE_FIELD_LABELS: Record<
+  | "requested_by"
+  | "useful_for_team"
+  | "reason_pain_point"
+  | "currently_software"
+  | "source_software"
+  | "request_type"
+  | "duplicate"
+  | "auto_schedule",
+  string
+> = {
+  requested_by: "Requested by",
+  useful_for_team: "Useful for team",
+  reason_pain_point: "Reason / Pain point",
+  currently_software: "Currently software",
+  source_software: "Source software",
+  request_type: "Request type",
+  duplicate: "Duplicate",
+  auto_schedule: "Auto schedule",
+};
