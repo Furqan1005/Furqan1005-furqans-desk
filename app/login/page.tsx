@@ -28,7 +28,7 @@ export default function LoginPage() {
             FA
           </div>
           <h1 className="text-lg font-semibold">Furqan&apos;s Desk</h1>
-          <p className="text-sm text-muted-foreground">Nothing falls through the cracks.</p>
+          <p className="text-sm text-muted-foreground">Think. Plan. Execute.</p>
         </div>
 
         <Card>

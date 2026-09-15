@@ -13,7 +13,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Furqan's Desk",
-  description: "Nothing falls through the cracks.",
+  description: "Think. Plan. Execute.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

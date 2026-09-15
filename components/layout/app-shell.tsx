@@ -23,9 +23,7 @@ export function AppShell({
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold text-white">Furqan&apos;s Desk</span>
-              <span className="text-[11px] text-sidebar-foreground/70">
-                Nothing falls through
-              </span>
+              <span className="text-[11px] text-sidebar-foreground/70">Think. Plan. Execute.</span>
             </div>
           </div>
           <SidebarNav />
