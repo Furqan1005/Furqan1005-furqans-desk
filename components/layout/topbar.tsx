@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, LogOut, Search } from "lucide-react";
 
 import { logout } from "@/lib/auth/actions";
 import { useCurrentUser } from "@/lib/auth/user-context";
@@ -18,13 +19,22 @@ import {
 
 export function Topbar() {
   const user = useCurrentUser();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const initials = user.fullName
     .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = search.trim();
+    if (!q) return;
+    router.push(`/issues?q=${encodeURIComponent(q)}`);
+  }
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border bg-card px-4 md:px-6">
@@ -52,6 +62,19 @@ export function Topbar() {
           Furqan&apos;s Desk
         </span>
       </div>
+
+      <form
+        onSubmit={handleSearch}
+        className="hidden max-w-sm flex-1 items-center gap-2 rounded-full border border-input bg-muted/50 px-3 py-1.5 md:mx-6 md:flex"
+      >
+        <Search className="size-4 shrink-0 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search issues, tasks..."
+          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+        />
+      </form>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

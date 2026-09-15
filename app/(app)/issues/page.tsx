@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export default function AllIssuesPage() {
   const issues = useIssuesStore((s) => s.issues);
   const loading = useIssuesStore((s) => s.loading);
   const [filters, setFilters] = useState<IssueFilterState>(EMPTY_FILTERS);
+  const initialQuery = useSearchParams().get("q") ?? undefined;
 
   const categories = useMemo(
     () => Array.from(new Set(issues.map((i) => i.category).filter((c): c is string => !!c))).sort(),
@@ -75,7 +77,12 @@ export default function AllIssuesPage() {
         </div>
       </div>
 
-      <AiSearchBar categories={categories} assignees={assignees} onParsed={setFilters} />
+      <AiSearchBar
+        categories={categories}
+        assignees={assignees}
+        onParsed={setFilters}
+        initialQuery={initialQuery}
+      />
 
       <IssueFilters value={filters} onChange={setFilters} categories={categories} assignees={assignees} />
 

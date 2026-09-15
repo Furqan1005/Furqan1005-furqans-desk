@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,30 @@ export function AiSearchBar({
   categories,
   assignees,
   onParsed,
+  initialQuery,
 }: {
   categories: string[];
   assignees: string[];
   onParsed: (filters: IssueFilterState) => void;
+  initialQuery?: string;
 }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!initialQuery?.trim()) return;
+    const parsed = parseSearchQueryLocally(initialQuery, { categories, assignees });
+    onParsed({
+      ...EMPTY_FILTERS,
+      search: parsed.search ?? "",
+      status: parsed.status ?? "all",
+      priority: parsed.priority ?? "all",
+      category: parsed.category ?? "all",
+      assignee: parsed.assignee ?? "all",
+    });
+    // Only meant to run once, for the query handed off from another page (e.g. the topbar search).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   function handleChange(value: string) {
     setQuery(value);
