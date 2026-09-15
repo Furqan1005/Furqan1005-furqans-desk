@@ -129,17 +129,6 @@ body {
   color: var(--primary-foreground);
 }
 
-@keyframes fa-fade-scale-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 @keyframes fa-fade-out {
   0% {
     opacity: 1;
@@ -147,14 +136,6 @@ body {
   100% {
     opacity: 0;
   }
-}
-
-.intro-badge {
-  animation: fa-fade-scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.intro-wordmark {
-  animation: fa-fade-scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .intro-overlay-out {
