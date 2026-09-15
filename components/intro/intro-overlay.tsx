@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { ArrowRight, ListChecks, Users, BarChart3, BookOpen, Zap } from "lucide-react";
 
 const SESSION_KEY = "furqans-desk-intro-shown";
@@ -17,13 +17,19 @@ export function IntroOverlay() {
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     let shown = true;
     try {
       shown = sessionStorage.getItem(SESSION_KEY) === "1";
     } catch {
       // sessionStorage unavailable (private mode) - just skip the intro.
     }
+
+    // A blocking script in the root layout already hid the real page behind
+    // this same check (see app/layout.tsx) to avoid a flash before this runs -
+    // now that we know the outcome, reveal it (the overlay covers it either way
+    // if it's about to show).
+    document.documentElement.classList.remove("intro-pending");
 
     if (shown) return;
 

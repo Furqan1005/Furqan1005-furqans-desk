@@ -141,3 +141,12 @@ body {
 .intro-overlay-out {
   animation: fa-fade-out 0.4s ease forwards;
 }
+
+/* Set synchronously by a blocking script before first paint (see app/layout.tsx) so the
+   real page content never flashes on screen before the intro overlay takes over. */
+html.intro-pending body {
+  background: #051c12;
+}
+html.intro-pending [data-app-content] {
+  visibility: hidden;
+}

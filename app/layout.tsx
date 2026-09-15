@@ -20,8 +20,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
+        {/* Runs before first paint so the real page never flashes behind the intro. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){try{if(sessionStorage.getItem("furqans-desk-intro-shown")!=="1"){document.documentElement.classList.add("intro-pending");}}catch(e){}})();',
+          }}
+        />
         <TooltipProvider>
-          {children}
+          <div data-app-content className="contents">
+            {children}
+          </div>
           <IntroOverlay />
           <Toaster position="top-right" richColors />
         </TooltipProvider>
