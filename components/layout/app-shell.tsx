@@ -16,8 +16,8 @@ export function AppShell({
     <CurrentUserProvider user={user}>
       <StoreInit />
       <div className="flex min-h-svh w-full">
-        <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar py-4 md:flex">
-          <div className="mb-4 flex items-center gap-2 px-4">
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar py-6 md:flex">
+          <div className="mb-6 flex items-center gap-2 px-5">
             <div className="flex size-8 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold text-white">
               FA
             </div>
