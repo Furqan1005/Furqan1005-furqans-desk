@@ -7,6 +7,7 @@ import {
   Loader,
   CalendarClock,
   Archive,
+  StickyNote,
   Sparkles,
   Settings,
 } from "lucide-react";
@@ -25,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/in-progress", label: "In Progress", icon: Loader },
   { href: "/due-this-week", label: "Due This Week", icon: CalendarClock },
   { href: "/archived", label: "Archived", icon: Archive },
+  { href: "/notes", label: "Sticky Notes", icon: StickyNote },
   { href: "/desk-ai", label: "Desk AI", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

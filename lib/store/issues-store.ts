@@ -11,6 +11,8 @@ import type {
   IssueStatus,
   KnowledgeSection,
   NewIssueInput,
+  NoteColor,
+  StickyNote,
 } from "@/lib/types";
 
 interface IssuesState {
@@ -18,6 +20,7 @@ interface IssuesState {
   activityLog: ActivityLogEntry[];
   settings: AppSettings | null;
   knowledgeSections: KnowledgeSection[];
+  stickyNotes: StickyNote[];
   loading: boolean;
   initialized: boolean;
   init: () => Promise<void>;
@@ -36,6 +39,9 @@ interface IssuesState {
     patch: Partial<Pick<KnowledgeSection, "title" | "content" | "sort_order">>
   ) => Promise<{ error?: string }>;
   deleteKnowledgeSection: (id: string) => Promise<{ error?: string }>;
+  addStickyNote: (color: NoteColor) => Promise<{ error?: string; id?: string }>;
+  updateStickyNote: (id: string, patch: Partial<Pick<StickyNote, "content" | "color">>) => Promise<{ error?: string }>;
+  deleteStickyNote: (id: string) => Promise<{ error?: string }>;
 }
 
 const supabase = createClient();
@@ -46,6 +52,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   activityLog: [],
   settings: null,
   knowledgeSections: [],
+  stickyNotes: [],
   loading: true,
   initialized: false,
 
@@ -53,7 +60,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true, loading: true });
 
-    const [issuesRes, activityRes, settingsRes, knowledgeRes] = await Promise.all([
+    const [issuesRes, activityRes, settingsRes, knowledgeRes, notesRes] = await Promise.all([
       supabase.from("issues").select("*").order("created_at", { ascending: false }),
       supabase
         .from("activity_log")
@@ -62,6 +69,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
         .limit(200),
       supabase.from("app_settings").select("*").eq("id", "default").maybeSingle(),
       supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
+      supabase.from("sticky_notes").select("*").order("created_at", { ascending: false }),
     ]);
 
     set({
@@ -69,6 +77,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       activityLog: (activityRes.data as ActivityLogEntry[]) ?? [],
       settings: (settingsRes.data as AppSettings | null) ?? null,
       knowledgeSections: (knowledgeRes.data as KnowledgeSection[]) ?? [],
+      stickyNotes: (notesRes.data as StickyNote[]) ?? [],
       loading: false,
     });
 
@@ -160,6 +169,36 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
               const oldRow = payload.old as Partial<KnowledgeSection>;
               return {
                 knowledgeSections: state.knowledgeSections.filter((s) => s.id !== oldRow.id),
+              };
+            }
+            return state;
+          });
+        }
+      )
+      .subscribe();
+
+    supabase
+      .channel("sticky-notes-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sticky_notes" },
+        (payload) => {
+          set((state) => {
+            if (payload.eventType === "INSERT") {
+              const row = payload.new as StickyNote;
+              if (state.stickyNotes.some((n) => n.id === row.id)) return state;
+              return { stickyNotes: [row, ...state.stickyNotes] };
+            }
+            if (payload.eventType === "UPDATE") {
+              const row = payload.new as StickyNote;
+              return {
+                stickyNotes: state.stickyNotes.map((n) => (n.id === row.id ? row : n)),
+              };
+            }
+            if (payload.eventType === "DELETE") {
+              const oldRow = payload.old as Partial<StickyNote>;
+              return {
+                stickyNotes: state.stickyNotes.filter((n) => n.id !== oldRow.id),
               };
             }
             return state;
@@ -269,6 +308,31 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
 
   deleteKnowledgeSection: async (id) => {
     const { error } = await supabase.from("knowledge_sections").delete().eq("id", id);
+    if (error) return { error: error.message };
+    return {};
+  },
+
+  addStickyNote: async (color) => {
+    const { data, error } = await supabase
+      .from("sticky_notes")
+      .insert({ content: "", color })
+      .select()
+      .single();
+    if (error) return { error: error.message };
+    return { id: data.id };
+  },
+
+  updateStickyNote: async (id, patch) => {
+    const { error } = await supabase.from("sticky_notes").update(patch).eq("id", id);
+    if (error) return { error: error.message };
+    set((state) => ({
+      stickyNotes: state.stickyNotes.map((n) => (n.id === id ? { ...n, ...patch } : n)),
+    }));
+    return {};
+  },
+
+  deleteStickyNote: async (id) => {
+    const { error } = await supabase.from("sticky_notes").delete().eq("id", id);
     if (error) return { error: error.message };
     return {};
   },

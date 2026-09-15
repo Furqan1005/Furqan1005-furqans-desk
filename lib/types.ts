@@ -60,6 +60,17 @@ export interface KnowledgeSection {
   updated_at: string;
 }
 
+export const NOTE_COLORS = ["yellow", "pink", "blue", "green", "purple"] as const;
+export type NoteColor = (typeof NOTE_COLORS)[number];
+
+export interface StickyNote {
+  id: string;
+  content: string;
+  color: NoteColor;
+  created_at: string;
+  updated_at: string;
+}
+
 export type NewIssueInput = Pick<Issue, "title"> &
   Partial<
     Pick<

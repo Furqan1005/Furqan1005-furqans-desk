@@ -42,6 +42,9 @@ interface NewIssueDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   initialDeadline?: string;
+  initialTitle?: string;
+  initialDescription?: string;
+  onCreated?: () => void;
 }
 
 export function NewIssueDialog({
@@ -49,6 +52,9 @@ export function NewIssueDialog({
   open: controlledOpen,
   onOpenChange: setControlledOpen,
   initialDeadline,
+  initialTitle,
+  initialDescription,
+  onCreated,
 }: NewIssueDialogProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
@@ -59,8 +65,8 @@ export function NewIssueDialog({
   const settings = useIssuesStore((s) => s.settings);
   const categories = settings?.categories ?? [];
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(initialTitle ?? "");
+  const [description, setDescription] = useState(initialDescription ?? "");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<IssueStatus>(settings?.default_status ?? "Open");
   const [priority, setPriority] = useState<IssuePriority>(settings?.default_priority ?? "Medium");
@@ -108,8 +114,8 @@ export function NewIssueDialog({
   }, [title, description, open]);
 
   function resetForm() {
-    setTitle("");
-    setDescription("");
+    setTitle(initialTitle ?? "");
+    setDescription(initialDescription ?? "");
     setCategory("");
     setStatus(settings?.default_status ?? "Open");
     setPriority(settings?.default_priority ?? "Medium");
@@ -163,6 +169,7 @@ export function NewIssueDialog({
     toast.success("Issue created.");
     resetForm();
     setOpen(false);
+    onCreated?.();
   }
 
   return (
