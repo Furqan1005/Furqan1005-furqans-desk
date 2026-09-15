@@ -2,44 +2,44 @@
 @import "tw-animate-css";
 
 :root {
-  --background: #f7f8fb;
-  --foreground: #1c1f2b;
+  --background: #f2efe4;
+  --foreground: #16211a;
 
   --card: #ffffff;
-  --card-foreground: #1c1f2b;
+  --card-foreground: #16211a;
 
   --popover: #ffffff;
-  --popover-foreground: #1c1f2b;
+  --popover-foreground: #16211a;
 
-  --primary: #362e91;
-  --primary-foreground: #ffffff;
+  --primary: #a8e024;
+  --primary-foreground: #16210f;
 
-  --secondary: #eef0fb;
-  --secondary-foreground: #362e91;
+  --secondary: #eef6d9;
+  --secondary-foreground: #33440f;
 
-  --muted: #eef0f4;
-  --muted-foreground: #666b7a;
+  --muted: #ebe7da;
+  --muted-foreground: #6b7266;
 
-  --accent: #eef0fb;
-  --accent-foreground: #362e91;
+  --accent: #eef6d9;
+  --accent-foreground: #33440f;
 
-  --destructive: #d33d3d;
+  --destructive: #e0473e;
   --destructive-foreground: #ffffff;
 
-  --success: #1f8a53;
+  --success: #2f9e58;
   --success-foreground: #ffffff;
-  --warning: #b5750f;
+  --warning: #c07f14;
   --warning-foreground: #ffffff;
 
-  --border: #e3e5ec;
-  --input: #d9dbe6;
-  --ring: #362e91;
+  --border: #e2ded0;
+  --input: #d7d2c0;
+  --ring: #a8e024;
 
-  --sidebar: #181a2b;
-  --sidebar-foreground: #c9cbe0;
-  --sidebar-active: #262a45;
-  --sidebar-active-foreground: #ffffff;
-  --sidebar-border: #262a45;
+  --sidebar: #0e1b12;
+  --sidebar-foreground: #a9b6a4;
+  --sidebar-active: #a8e024;
+  --sidebar-active-foreground: #16210f;
+  --sidebar-border: #1c2b20;
 
   --radius: 0.85rem;
 }
