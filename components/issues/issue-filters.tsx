@@ -84,8 +84,8 @@ export function IssueFilters({
       </Select>
 
       <Select value={value.priority} onValueChange={(v) => set("priority", v)}>
-        <SelectTrigger size="sm" className="w-32">
-          <SelectValue placeholder="Priority" />
+        <SelectTrigger size="sm" className="w-36">
+          <SelectValue className="whitespace-nowrap" placeholder="Priority" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All priorities</SelectItem>
