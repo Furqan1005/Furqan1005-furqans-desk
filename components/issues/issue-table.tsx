@@ -185,7 +185,7 @@ export function IssueTable({
                     <button
                       type="button"
                       onClick={() => setEditingIssue(issue)}
-                      className="text-left font-medium transition-colors hover:text-primary hover:underline"
+                      className="text-left font-medium transition-colors hover:text-[#9dc209] hover:underline"
                     >
                       {issue.title}
                     </button>
