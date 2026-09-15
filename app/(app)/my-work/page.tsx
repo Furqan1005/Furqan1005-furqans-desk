@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { IssueTable } from "@/components/issues/issue-table";
+import { NewIssueDialog } from "@/components/issues/new-issue-dialog";
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { matchesAssignee } from "@/lib/issue-utils";
@@ -19,14 +20,17 @@ export default function MyWorkPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-lg font-semibold">My Work</h1>
-        <p className="text-sm text-muted-foreground">
-          Issues assigned to {user.fullName}.{" "}
-          {user.fullName === user.email && (
-            <>Set your name in Settings if this looks wrong.</>
-          )}
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold">My Work</h1>
+          <p className="text-sm text-muted-foreground">
+            Issues assigned to {user.fullName}.{" "}
+            {user.fullName === user.email && (
+              <>Set your name in Settings if this looks wrong.</>
+            )}
+          </p>
+        </div>
+        <NewIssueDialog initialAssignedTo={user.fullName} />
       </div>
       {loading ? (
         <div className="py-16 text-center text-sm text-muted-foreground">Loading issues…</div>

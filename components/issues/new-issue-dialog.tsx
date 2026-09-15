@@ -44,6 +44,7 @@ interface NewIssueDialogProps {
   initialDeadline?: string;
   initialTitle?: string;
   initialDescription?: string;
+  initialAssignedTo?: string;
   onCreated?: () => void;
 }
 
@@ -54,6 +55,7 @@ export function NewIssueDialog({
   initialDeadline,
   initialTitle,
   initialDescription,
+  initialAssignedTo,
   onCreated,
 }: NewIssueDialogProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);
@@ -70,7 +72,7 @@ export function NewIssueDialog({
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<IssueStatus>(settings?.default_status ?? "Open");
   const [priority, setPriority] = useState<IssuePriority>(settings?.default_priority ?? "Medium");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [assignedTo, setAssignedTo] = useState(initialAssignedTo ?? "");
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState(initialDeadline ?? "");
   const [remarks, setRemarks] = useState("");
@@ -119,7 +121,7 @@ export function NewIssueDialog({
     setCategory("");
     setStatus(settings?.default_status ?? "Open");
     setPriority(settings?.default_priority ?? "Medium");
-    setAssignedTo("");
+    setAssignedTo(initialAssignedTo ?? "");
     setStartDate("");
     setDeadline(initialDeadline ?? "");
     setRemarks("");
