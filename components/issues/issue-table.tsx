@@ -181,8 +181,14 @@ export function IssueTable({
             <TableBody>
               {issues.map((issue) => (
                 <TableRow key={issue.id}>
-                  <TableCell className="max-w-80 whitespace-normal font-medium">
-                    {issue.title}
+                  <TableCell className="max-w-80 whitespace-normal">
+                    <button
+                      type="button"
+                      onClick={() => setEditingIssue(issue)}
+                      className="text-left font-medium transition-colors hover:text-primary hover:underline"
+                    >
+                      {issue.title}
+                    </button>
                     {isOverdue(issue) && (
                       <Badge variant="destructive" className="ml-2 align-middle">
                         Overdue
