@@ -55,7 +55,7 @@ export function StickyNoteCard({
         onChange={(e) => setContent(e.target.value)}
         onBlur={saveIfChanged}
         placeholder="Write a quick note…"
-        className="min-h-28 resize-none border-none bg-transparent p-0 text-sm text-[#1c1f2b] shadow-none focus-visible:ring-0"
+        className="min-h-28 resize-none border-none bg-transparent p-1 leading-relaxed text-sm text-[#1c1f2b] shadow-none focus-visible:ring-0"
       />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
