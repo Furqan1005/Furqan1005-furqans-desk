@@ -9,6 +9,7 @@ import { NewIssueDialog } from "@/components/issues/new-issue-dialog";
 import { StickyNoteCard } from "@/components/notes/sticky-note-card";
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { NOTE_COLORS, type StickyNote } from "@/lib/types";
+import { stripHtml } from "@/lib/notes";
 
 export default function NotesPage() {
   const stickyNotes = useIssuesStore((s) => s.stickyNotes);
@@ -22,7 +23,8 @@ export default function NotesPage() {
     if (error) toast.error(error);
   }
 
-  const firstLine = convertingNote?.content.split("\n")[0]?.trim() ?? "";
+  const plainContent = convertingNote ? stripHtml(convertingNote.content) : "";
+  const firstLine = plainContent.split("\n")[0]?.trim() ?? "";
   const initialTitle = firstLine.length > 0 && firstLine.length <= 80 ? firstLine : "";
 
   return (
@@ -60,7 +62,7 @@ export default function NotesPage() {
         open={!!convertingNote}
         onOpenChange={(v) => !v && setConvertingNote(null)}
         initialTitle={initialTitle}
-        initialDescription={convertingNote?.content.trim() ?? ""}
+        initialDescription={plainContent}
         onCreated={() => {
           if (convertingNote) {
             useIssuesStore.getState().deleteStickyNote(convertingNote.id);

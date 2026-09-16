@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import { Trash2, ArrowRightCircle, Maximize2 } from "lucide-react";
 
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "./rich-text-editor";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { NOTE_COLORS, type NoteColor, type StickyNote } from "@/lib/types";
+import { stripHtml } from "@/lib/notes";
 import { cn } from "@/lib/utils";
 
 const COLOR_STYLES: Record<NoteColor, { bg: string; border: string; swatch: string }> = {
@@ -30,10 +32,13 @@ export function StickyNoteCard({
   const [content, setContent] = useState(note.content);
   const [expanded, setExpanded] = useState(false);
   const style = COLOR_STYLES[note.color];
+  const isContentEmpty = !stripHtml(content).trim();
 
   async function saveIfChanged() {
-    if (content === note.content) return;
-    const { error } = await updateStickyNote(note.id, { content });
+    const sanitized = DOMPurify.sanitize(content);
+    if (sanitized !== content) setContent(sanitized);
+    if (sanitized === note.content) return;
+    const { error } = await updateStickyNote(note.id, { content: sanitized });
     if (error) toast.error(error);
   }
 
@@ -85,7 +90,7 @@ export function StickyNoteCard({
         <button
           type="button"
           onClick={convert}
-          disabled={!content.trim()}
+          disabled={isContentEmpty}
           aria-label="Convert to issue"
           title="Convert to issue"
           className="rounded-md p-1.5 text-[#1c1f2b]/70 transition-colors hover:bg-black/5 hover:text-[#1c1f2b] disabled:pointer-events-none disabled:opacity-40"
@@ -111,12 +116,12 @@ export function StickyNoteCard({
         className="hover-lift flex flex-col gap-2 rounded-lg border p-3 shadow-sm"
         style={{ backgroundColor: style.bg, borderColor: style.border }}
       >
-        <Textarea
+        <RichTextEditor
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={setContent}
           onBlur={saveIfChanged}
           placeholder="Write a quick note…"
-          className="min-h-28 resize-none border-none bg-transparent p-1 leading-relaxed text-sm text-[#1c1f2b] shadow-none focus-visible:ring-0"
+          className="min-h-28 overflow-y-auto p-1 text-sm leading-relaxed text-[#1c1f2b]"
         />
         {actions}
       </div>
@@ -135,12 +140,13 @@ export function StickyNoteCard({
           <DialogHeader>
             <DialogTitle className="text-[#1c1f2b]">Note</DialogTitle>
           </DialogHeader>
-          <Textarea
+          <RichTextEditor
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={setContent}
+            onBlur={saveIfChanged}
             placeholder="Write a quick note…"
             autoFocus
-            className="min-h-[50vh] flex-1 resize-none border-none bg-transparent p-1 leading-relaxed text-sm text-[#1c1f2b] shadow-none focus-visible:ring-0"
+            className="min-h-[50vh] flex-1 overflow-y-auto p-1 text-sm leading-relaxed text-[#1c1f2b]"
           />
           {actions}
         </DialogContent>

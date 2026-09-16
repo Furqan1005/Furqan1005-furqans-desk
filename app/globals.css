@@ -150,3 +150,9 @@ html.intro-pending body {
 html.intro-pending [data-app-content] {
   visibility: hidden;
 }
+
+.rich-text-editable.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
