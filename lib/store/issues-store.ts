@@ -13,6 +13,7 @@ import type {
   NewIssueInput,
   NoteColor,
   StickyNote,
+  Subtask,
 } from "@/lib/types";
 
 interface IssuesState {
@@ -21,6 +22,7 @@ interface IssuesState {
   settings: AppSettings | null;
   knowledgeSections: KnowledgeSection[];
   stickyNotes: StickyNote[];
+  subtasks: Subtask[];
   loading: boolean;
   initialized: boolean;
   init: () => Promise<void>;
@@ -42,6 +44,9 @@ interface IssuesState {
   addStickyNote: (color: NoteColor) => Promise<{ error?: string; id?: string }>;
   updateStickyNote: (id: string, patch: Partial<Pick<StickyNote, "content" | "color">>) => Promise<{ error?: string }>;
   deleteStickyNote: (id: string) => Promise<{ error?: string }>;
+  addSubtask: (issueId: string, title: string) => Promise<{ error?: string }>;
+  toggleSubtask: (id: string, done: boolean) => Promise<{ error?: string }>;
+  deleteSubtask: (id: string) => Promise<{ error?: string }>;
 }
 
 const supabase = createClient();
@@ -53,6 +58,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   settings: null,
   knowledgeSections: [],
   stickyNotes: [],
+  subtasks: [],
   loading: true,
   initialized: false,
 
@@ -60,17 +66,19 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true, loading: true });
 
-    const [issuesRes, activityRes, settingsRes, knowledgeRes, notesRes] = await Promise.all([
-      supabase.from("issues").select("*").order("created_at", { ascending: false }),
-      supabase
-        .from("activity_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase.from("app_settings").select("*").eq("id", "default").maybeSingle(),
-      supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
-      supabase.from("sticky_notes").select("*").order("created_at", { ascending: false }),
-    ]);
+    const [issuesRes, activityRes, settingsRes, knowledgeRes, notesRes, subtasksRes] =
+      await Promise.all([
+        supabase.from("issues").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("activity_log")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        supabase.from("app_settings").select("*").eq("id", "default").maybeSingle(),
+        supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
+        supabase.from("sticky_notes").select("*").order("created_at", { ascending: false }),
+        supabase.from("subtasks").select("*").order("created_at", { ascending: true }),
+      ]);
 
     set({
       issues: (issuesRes.data as Issue[]) ?? [],
@@ -78,6 +86,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       settings: (settingsRes.data as AppSettings | null) ?? null,
       knowledgeSections: (knowledgeRes.data as KnowledgeSection[]) ?? [],
       stickyNotes: (notesRes.data as StickyNote[]) ?? [],
+      subtasks: (subtasksRes.data as Subtask[]) ?? [],
       loading: false,
     });
 
@@ -199,6 +208,36 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
               const oldRow = payload.old as Partial<StickyNote>;
               return {
                 stickyNotes: state.stickyNotes.filter((n) => n.id !== oldRow.id),
+              };
+            }
+            return state;
+          });
+        }
+      )
+      .subscribe();
+
+    supabase
+      .channel("subtasks-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subtasks" },
+        (payload) => {
+          set((state) => {
+            if (payload.eventType === "INSERT") {
+              const row = payload.new as Subtask;
+              if (state.subtasks.some((s) => s.id === row.id)) return state;
+              return { subtasks: [...state.subtasks, row] };
+            }
+            if (payload.eventType === "UPDATE") {
+              const row = payload.new as Subtask;
+              return {
+                subtasks: state.subtasks.map((s) => (s.id === row.id ? row : s)),
+              };
+            }
+            if (payload.eventType === "DELETE") {
+              const oldRow = payload.old as Partial<Subtask>;
+              return {
+                subtasks: state.subtasks.filter((s) => s.id !== oldRow.id),
               };
             }
             return state;
@@ -334,6 +373,28 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   deleteStickyNote: async (id) => {
     const { error } = await supabase.from("sticky_notes").delete().eq("id", id);
     if (error) return { error: error.message };
+    return {};
+  },
+
+  addSubtask: async (issueId, title) => {
+    const { error } = await supabase.from("subtasks").insert({ issue_id: issueId, title });
+    if (error) return { error: error.message };
+    return {};
+  },
+
+  toggleSubtask: async (id, done) => {
+    const { error } = await supabase.from("subtasks").update({ done }).eq("id", id);
+    if (error) return { error: error.message };
+    set((state) => ({
+      subtasks: state.subtasks.map((s) => (s.id === id ? { ...s, done } : s)),
+    }));
+    return {};
+  },
+
+  deleteSubtask: async (id) => {
+    const { error } = await supabase.from("subtasks").delete().eq("id", id);
+    if (error) return { error: error.message };
+    set((state) => ({ subtasks: state.subtasks.filter((s) => s.id !== id) }));
     return {};
   },
 }));

@@ -24,6 +24,7 @@ import {
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, type Issue, type IssuePriority, type IssueStatus } from "@/lib/types";
 import { IntakeDetailsFields, type IntakeDetailsValues } from "./intake-details-fields";
+import { SubtaskList } from "./subtask-list";
 
 export function EditIssueDialog({
   issue,
@@ -219,6 +220,8 @@ export function EditIssueDialog({
             <Label htmlFor="ei-remarks">Remarks</Label>
             <Textarea id="ei-remarks" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
           </div>
+
+          <SubtaskList issueId={issue.id} />
 
           <IntakeDetailsFields
             idPrefix="ei"

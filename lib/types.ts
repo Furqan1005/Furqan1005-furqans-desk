@@ -71,6 +71,14 @@ export interface StickyNote {
   updated_at: string;
 }
 
+export interface Subtask {
+  id: string;
+  issue_id: string;
+  title: string;
+  done: boolean;
+  created_at: string;
+}
+
 export type NewIssueInput = Pick<Issue, "title"> &
   Partial<
     Pick<

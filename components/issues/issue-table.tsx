@@ -58,6 +58,7 @@ export function IssueTable({
   const updateIssue = useIssuesStore((s) => s.updateIssue);
   const archiveIssue = useIssuesStore((s) => s.archiveIssue);
   const deleteIssue = useIssuesStore((s) => s.deleteIssue);
+  const subtasks = useIssuesStore((s) => s.subtasks);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [extraColumns, setExtraColumns] = useState<string[]>([]);
 
@@ -179,7 +180,9 @@ export function IssueTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {issues.map((issue) => (
+              {issues.map((issue) => {
+                const issueSubtasks = subtasks.filter((st) => st.issue_id === issue.id);
+                return (
                 <TableRow key={issue.id}>
                   <TableCell className="max-w-80 whitespace-normal">
                     <button
@@ -192,6 +195,11 @@ export function IssueTable({
                     {isOverdue(issue) && (
                       <Badge variant="destructive" className="ml-2 align-middle">
                         Overdue
+                      </Badge>
+                    )}
+                    {issueSubtasks.length > 0 && (
+                      <Badge variant="outline" className="ml-2 align-middle">
+                        {issueSubtasks.filter((st) => st.done).length}/{issueSubtasks.length} subtasks
                       </Badge>
                     )}
                     {issue.remarks && (
@@ -272,7 +280,8 @@ export function IssueTable({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </div>
