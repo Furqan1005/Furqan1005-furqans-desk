@@ -11,6 +11,8 @@ import {
   Columns3,
   GripVertical,
   CornerDownRight,
+  ChevronRight,
+  ChevronDown,
   Undo2,
 } from "lucide-react";
 
@@ -67,12 +69,15 @@ const COLUMNS_STORAGE_KEY = "furqans-desk-issue-table-extra-columns";
 interface Row {
   issue: Issue;
   depth: number;
+  childCount: number;
 }
 
 // Nest any issue directly under its parent when the parent is also present in
 // this same list - a purely visual grouping, since an issue's parent may not
-// always be in the current filtered view (e.g. a different assignee).
-function buildDisplayOrder(issues: Issue[]): Row[] {
+// always be in the current filtered view (e.g. a different assignee). Parents
+// start collapsed (per `expanded`) so the hierarchy reads as "this has
+// subtasks, click to see them" rather than always dumping everything open.
+function buildDisplayOrder(issues: Issue[], expanded: Record<string, boolean>): Row[] {
   const byId = new Map(issues.map((i) => [i.id, i]));
   const childrenOf = new Map<string, Issue[]>();
   for (const issue of issues) {
@@ -89,9 +94,10 @@ function buildDisplayOrder(issues: Issue[]): Row[] {
   function walk(issue: Issue, depth: number) {
     if (visited.has(issue.id)) return; // guard against a cycle
     visited.add(issue.id);
-    rows.push({ issue, depth });
-    for (const child of childrenOf.get(issue.id) ?? []) {
-      walk(child, depth + 1);
+    const children = childrenOf.get(issue.id) ?? [];
+    rows.push({ issue, depth, childCount: children.length });
+    if (expanded[issue.id]) {
+      for (const child of children) walk(child, depth + 1);
     }
   }
   for (const issue of topLevel) walk(issue, 0);
@@ -125,6 +131,11 @@ export function IssueTable({
   const [extraColumns, setExtraColumns] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   useEffect(() => {
     try {
@@ -202,6 +213,7 @@ export function IssueTable({
     updateIssue(sourceId, { parent_id: target.id }, describeParentChange(target.title)).then(
       ({ error }) => {
         if (error) toast.error(error);
+        else setExpanded((prev) => ({ ...prev, [target.id]: true }));
       }
     );
   }
@@ -244,7 +256,7 @@ export function IssueTable({
     );
   }
 
-  const rows = buildDisplayOrder(issues);
+  const rows = buildDisplayOrder(issues, expanded);
 
   return (
     <>
@@ -269,7 +281,7 @@ export function IssueTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map(({ issue, depth }) => (
+              {rows.map(({ issue, depth, childCount }) => (
                 <TableRow
                   key={issue.id}
                   draggable
@@ -301,6 +313,22 @@ export function IssueTable({
                       {depth > 0 && (
                         <CornerDownRight className="mt-1 size-3.5 shrink-0 text-muted-foreground/50" />
                       )}
+                      {childCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(issue.id)}
+                          aria-label={expanded[issue.id] ? "Collapse subtasks" : "Expand subtasks"}
+                          className="mt-0.5 shrink-0 rounded text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          {expanded[issue.id] ? (
+                            <ChevronDown className="size-4" />
+                          ) : (
+                            <ChevronRight className="size-4" />
+                          )}
+                        </button>
+                      ) : (
+                        depth === 0 && <span className="w-4 shrink-0" />
+                      )}
                       <div className="min-w-0">
                         <button
                           type="button"
@@ -309,6 +337,15 @@ export function IssueTable({
                         >
                           {issue.title}
                         </button>
+                        {childCount > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="ml-2 cursor-pointer align-middle"
+                            onClick={() => toggleExpanded(issue.id)}
+                          >
+                            {childCount} subtask{childCount > 1 ? "s" : ""}
+                          </Badge>
+                        )}
                         {isOverdue(issue) && (
                           <Badge variant="destructive" className="ml-2 align-middle">
                             Overdue
