@@ -55,6 +55,22 @@ export function issuesToCsv(issues: Issue[]) {
   return [header, ...rows].join("\n");
 }
 
+// A short, plain-English export for sharing a quick status update (e.g. with
+// a manager) rather than the full tracker-matching column set above.
+const SIMPLE_COLUMNS: ColumnDef[] = [
+  { key: "title", header: "Issue" },
+  { key: "status", header: "Fixed" },
+  { key: "remarks", header: "Why it's fixed" },
+];
+
+export function issuesToSimpleCsv(issues: Issue[]) {
+  const header = SIMPLE_COLUMNS.map((c) => escapeCsvValue(c.header)).join(",");
+  const rows = issues.map((issue) =>
+    SIMPLE_COLUMNS.map((c) => escapeCsvValue(formatCsvCell(c.key, issue[c.key]))).join(",")
+  );
+  return [header, ...rows].join("\n");
+}
+
 export function downloadCsv(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);

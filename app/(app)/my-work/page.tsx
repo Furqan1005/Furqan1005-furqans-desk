@@ -16,7 +16,7 @@ import {
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { matchesAssignee } from "@/lib/issue-utils";
-import { downloadCsv, issuesToCsv } from "@/lib/csv";
+import { downloadCsv, issuesToSimpleCsv } from "@/lib/csv";
 import { STATUS_OPTIONS, type IssueStatus } from "@/lib/types";
 
 export default function MyWorkPage() {
@@ -36,7 +36,7 @@ export default function MyWorkPage() {
   );
 
   function handleExport() {
-    const csv = issuesToCsv(filtered);
+    const csv = issuesToSimpleCsv(filtered);
     const statusPart = status === "all" ? "" : `-${status.toLowerCase().replace(/\s+/g, "-")}`;
     downloadCsv(
       `my-work${statusPart}-${new Date().toISOString().slice(0, 10)}.csv`,
