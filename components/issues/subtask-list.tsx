@@ -12,7 +12,12 @@ import { useIssuesStore } from "@/lib/store/issues-store";
 import { cn } from "@/lib/utils";
 
 export function SubtaskList({ issueId }: { issueId: string }) {
-  const subtasks = useIssuesStore((s) => s.subtasks.filter((st) => st.issue_id === issueId));
+  // Select the raw array (a stable reference unless subtasks actually change) and
+  // filter outside the selector - filtering inline in the selector would return a
+  // new array on every call, which makes useSyncExternalStore think the store
+  // changed on every render and loops forever.
+  const allSubtasks = useIssuesStore((s) => s.subtasks);
+  const subtasks = allSubtasks.filter((st) => st.issue_id === issueId);
   const addSubtask = useIssuesStore((s) => s.addSubtask);
   const toggleSubtask = useIssuesStore((s) => s.toggleSubtask);
   const deleteSubtask = useIssuesStore((s) => s.deleteSubtask);
