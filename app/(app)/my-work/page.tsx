@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { IssueTable } from "@/components/issues/issue-table";
 import { NewIssueDialog } from "@/components/issues/new-issue-dialog";
 import {
@@ -14,6 +16,7 @@ import {
 import { useIssuesStore } from "@/lib/store/issues-store";
 import { useCurrentUser } from "@/lib/auth/user-context";
 import { matchesAssignee } from "@/lib/issue-utils";
+import { downloadCsv, issuesToCsv } from "@/lib/csv";
 import { STATUS_OPTIONS, type IssueStatus } from "@/lib/types";
 
 export default function MyWorkPage() {
@@ -31,6 +34,15 @@ export default function MyWorkPage() {
     () => (status === "all" ? mine : mine.filter((i) => i.status === status)),
     [mine, status]
   );
+
+  function handleExport() {
+    const csv = issuesToCsv(filtered);
+    const statusPart = status === "all" ? "" : `-${status.toLowerCase().replace(/\s+/g, "-")}`;
+    downloadCsv(
+      `my-work${statusPart}-${new Date().toISOString().slice(0, 10)}.csv`,
+      csv
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,6 +71,10 @@ export default function MyWorkPage() {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download />
+            Export CSV
+          </Button>
           <NewIssueDialog initialAssignedTo={user.fullName} />
         </div>
       </div>
