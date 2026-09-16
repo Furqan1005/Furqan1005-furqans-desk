@@ -2,7 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { MoreHorizontal, Archive, ArchiveRestore, Trash2, Pencil, Columns3 } from "lucide-react";
+import {
+  MoreHorizontal,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  Pencil,
+  Columns3,
+  GripVertical,
+  CornerDownRight,
+  Undo2,
+} from "lucide-react";
 
 import {
   Table,
@@ -34,8 +44,14 @@ import { PriorityBadge } from "./priority-badge";
 import { EditIssueDialog } from "./edit-issue-dialog";
 import { AssigneeCell } from "./assignee-cell";
 import { DeadlineCell } from "./deadline-cell";
-import { useIssuesStore, describeStatusChange, describePriorityChange } from "@/lib/store/issues-store";
+import {
+  useIssuesStore,
+  describeStatusChange,
+  describePriorityChange,
+  describeParentChange,
+} from "@/lib/store/issues-store";
 import { isOverdue } from "@/lib/issue-utils";
+import { cn } from "@/lib/utils";
 import {
   INTAKE_FIELD_LABELS,
   PRIORITY_OPTIONS,
@@ -48,6 +64,53 @@ import {
 const INTAKE_KEYS = Object.keys(INTAKE_FIELD_LABELS) as (keyof typeof INTAKE_FIELD_LABELS)[];
 const COLUMNS_STORAGE_KEY = "furqans-desk-issue-table-extra-columns";
 
+interface Row {
+  issue: Issue;
+  depth: number;
+}
+
+// Nest any issue directly under its parent when the parent is also present in
+// this same list - a purely visual grouping, since an issue's parent may not
+// always be in the current filtered view (e.g. a different assignee).
+function buildDisplayOrder(issues: Issue[]): Row[] {
+  const byId = new Map(issues.map((i) => [i.id, i]));
+  const childrenOf = new Map<string, Issue[]>();
+  for (const issue of issues) {
+    if (issue.parent_id && byId.has(issue.parent_id)) {
+      const list = childrenOf.get(issue.parent_id) ?? [];
+      list.push(issue);
+      childrenOf.set(issue.parent_id, list);
+    }
+  }
+  const topLevel = issues.filter((i) => !i.parent_id || !byId.has(i.parent_id));
+
+  const rows: Row[] = [];
+  const visited = new Set<string>();
+  function walk(issue: Issue, depth: number) {
+    if (visited.has(issue.id)) return; // guard against a cycle
+    visited.add(issue.id);
+    rows.push({ issue, depth });
+    for (const child of childrenOf.get(issue.id) ?? []) {
+      walk(child, depth + 1);
+    }
+  }
+  for (const issue of topLevel) walk(issue, 0);
+  return rows;
+}
+
+function isDescendantOf(candidateId: string, ancestorId: string, issues: Issue[]): boolean {
+  const byId = new Map(issues.map((i) => [i.id, i]));
+  let current = byId.get(candidateId);
+  const seen = new Set<string>();
+  while (current?.parent_id) {
+    if (seen.has(current.id)) return false;
+    seen.add(current.id);
+    if (current.parent_id === ancestorId) return true;
+    current = byId.get(current.parent_id);
+  }
+  return false;
+}
+
 export function IssueTable({
   issues,
   emptyMessage = "No issues here.",
@@ -58,9 +121,10 @@ export function IssueTable({
   const updateIssue = useIssuesStore((s) => s.updateIssue);
   const archiveIssue = useIssuesStore((s) => s.archiveIssue);
   const deleteIssue = useIssuesStore((s) => s.deleteIssue);
-  const subtasks = useIssuesStore((s) => s.subtasks);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
   const [extraColumns, setExtraColumns] = useState<string[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -119,6 +183,29 @@ export function IssueTable({
     else toast.success("Issue deleted.");
   }
 
+  async function handleUnnest(issue: Issue) {
+    const { error } = await updateIssue(issue.id, { parent_id: null }, describeParentChange(null));
+    if (error) toast.error(error);
+  }
+
+  function handleDrop(target: Issue) {
+    const sourceId = draggedId;
+    setDraggedId(null);
+    setDragOverId(null);
+    if (!sourceId || sourceId === target.id) return;
+    if (isDescendantOf(target.id, sourceId, issues)) {
+      toast.error("Can't nest an issue under its own subtask.");
+      return;
+    }
+    const source = issues.find((i) => i.id === sourceId);
+    if (!source || source.parent_id === target.id) return;
+    updateIssue(sourceId, { parent_id: target.id }, describeParentChange(target.title)).then(
+      ({ error }) => {
+        if (error) toast.error(error);
+      }
+    );
+  }
+
   const columnsToggle = (
     <div className="flex justify-end">
       <DropdownMenu>
@@ -157,6 +244,8 @@ export function IssueTable({
     );
   }
 
+  const rows = buildDisplayOrder(issues);
+
   return (
     <>
       <div className="flex flex-col gap-2">
@@ -180,33 +269,58 @@ export function IssueTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {issues.map((issue) => {
-                const issueSubtasks = subtasks.filter((st) => st.issue_id === issue.id);
-                return (
-                <TableRow key={issue.id}>
+              {rows.map(({ issue, depth }) => (
+                <TableRow
+                  key={issue.id}
+                  draggable
+                  onDragStart={() => setDraggedId(issue.id)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (draggedId && draggedId !== issue.id) setDragOverId(issue.id);
+                  }}
+                  onDragLeave={() =>
+                    setDragOverId((current) => (current === issue.id ? null : current))
+                  }
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDrop(issue);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setDragOverId(null);
+                  }}
+                  className={cn(
+                    "cursor-grab active:cursor-grabbing",
+                    draggedId === issue.id && "opacity-50",
+                    dragOverId === issue.id && "bg-primary/10 outline-2 -outline-offset-2 outline-primary"
+                  )}
+                >
                   <TableCell className="max-w-80 whitespace-normal">
-                    <button
-                      type="button"
-                      onClick={() => setEditingIssue(issue)}
-                      className="text-left font-medium transition-colors hover:text-[#9dc209] hover:underline"
-                    >
-                      {issue.title}
-                    </button>
-                    {isOverdue(issue) && (
-                      <Badge variant="destructive" className="ml-2 align-middle">
-                        Overdue
-                      </Badge>
-                    )}
-                    {issueSubtasks.length > 0 && (
-                      <Badge variant="outline" className="ml-2 align-middle">
-                        {issueSubtasks.filter((st) => st.done).length}/{issueSubtasks.length} subtasks
-                      </Badge>
-                    )}
-                    {issue.remarks && (
-                      <p className="mt-0.5 text-xs font-normal text-muted-foreground line-clamp-1">
-                        {issue.remarks}
-                      </p>
-                    )}
+                    <div className="flex items-start gap-1.5" style={{ paddingLeft: depth * 20 }}>
+                      <GripVertical className="mt-1 size-3.5 shrink-0 text-muted-foreground/50" />
+                      {depth > 0 && (
+                        <CornerDownRight className="mt-1 size-3.5 shrink-0 text-muted-foreground/50" />
+                      )}
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingIssue(issue)}
+                          className="text-left font-medium transition-colors hover:text-[#9dc209] hover:underline"
+                        >
+                          {issue.title}
+                        </button>
+                        {isOverdue(issue) && (
+                          <Badge variant="destructive" className="ml-2 align-middle">
+                            Overdue
+                          </Badge>
+                        )}
+                        {issue.remarks && (
+                          <p className="mt-0.5 text-xs font-normal text-muted-foreground line-clamp-1">
+                            {issue.remarks}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{issue.category ?? "—"}</TableCell>
                   <TableCell>
@@ -253,7 +367,7 @@ export function IssueTable({
                   </TableCell>
                   {extraColumns.map((key) => (
                     <TableCell key={key} className="max-w-56 whitespace-normal text-muted-foreground">
-                      {issue[key as keyof Issue] as string | null ?? "—"}
+                      {(issue[key as keyof Issue] as string | null) ?? "—"}
                     </TableCell>
                   ))}
                   <TableCell>
@@ -268,6 +382,12 @@ export function IssueTable({
                           <Pencil />
                           Edit details
                         </DropdownMenuItem>
+                        {issue.parent_id && (
+                          <DropdownMenuItem onSelect={() => handleUnnest(issue)}>
+                            <Undo2 />
+                            Remove from parent
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onSelect={() => handleArchiveToggle(issue)}>
                           {issue.archived ? <ArchiveRestore /> : <Archive />}
                           {issue.archived ? "Unarchive" : "Archive"}
@@ -280,8 +400,7 @@ export function IssueTable({
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-                );
-              })}
+              ))}
             </TableBody>
           </Table>
         </div>

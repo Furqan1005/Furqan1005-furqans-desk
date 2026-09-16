@@ -34,6 +34,7 @@ export interface Issue {
   request_type: string | null;
   duplicate: string | null;
   auto_schedule: string | null;
+  parent_id: string | null;
 }
 
 export interface ActivityLogEntry {
@@ -69,14 +70,6 @@ export interface StickyNote {
   color: NoteColor;
   created_at: string;
   updated_at: string;
-}
-
-export interface Subtask {
-  id: string;
-  issue_id: string;
-  title: string;
-  done: boolean;
-  created_at: string;
 }
 
 export type NewIssueInput = Pick<Issue, "title"> &
