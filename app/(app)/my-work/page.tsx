@@ -38,7 +38,8 @@ export default function MyWorkPage() {
         <div>
           <h1 className="text-lg font-semibold">My Work</h1>
           <p className="text-sm text-muted-foreground">
-            Issues assigned to {user.fullName}.{" "}
+            {filtered.length} {status !== "all" && `${status} `}
+            issue{filtered.length === 1 ? "" : "s"} assigned to {user.fullName}.{" "}
             {user.fullName === user.email && (
               <>Set your name in Settings if this looks wrong.</>
             )}
