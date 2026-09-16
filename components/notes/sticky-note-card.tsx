@@ -121,7 +121,7 @@ export function StickyNoteCard({
           onChange={setContent}
           onBlur={saveIfChanged}
           placeholder="Write a quick note…"
-          className="min-h-28 overflow-y-auto p-1 text-sm leading-relaxed text-[#1c1f2b]"
+          className="h-28 overflow-y-auto p-1 text-sm leading-relaxed text-[#1c1f2b]"
         />
         {actions}
       </div>
