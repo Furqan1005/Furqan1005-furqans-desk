@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   ActivityLogEntry,
   AppSettings,
+  FixBankEntry,
   Issue,
   IssuePriority,
   IssueStatus,
   KnowledgeSection,
+  NewFixBankEntryInput,
   NewIssueInput,
   NoteColor,
   StickyNote,
@@ -21,6 +23,7 @@ interface IssuesState {
   settings: AppSettings | null;
   knowledgeSections: KnowledgeSection[];
   stickyNotes: StickyNote[];
+  fixBankEntries: FixBankEntry[];
   loading: boolean;
   initialized: boolean;
   init: () => Promise<void>;
@@ -42,6 +45,12 @@ interface IssuesState {
   addStickyNote: (color: NoteColor) => Promise<{ error?: string; id?: string }>;
   updateStickyNote: (id: string, patch: Partial<Pick<StickyNote, "content" | "color">>) => Promise<{ error?: string }>;
   deleteStickyNote: (id: string) => Promise<{ error?: string }>;
+  addFixBankEntry: (input: NewFixBankEntryInput) => Promise<{ error?: string }>;
+  updateFixBankEntry: (
+    id: string,
+    patch: Partial<Pick<FixBankEntry, "title" | "category" | "root_cause" | "troubleshooting_steps" | "fix">>
+  ) => Promise<{ error?: string }>;
+  deleteFixBankEntry: (id: string) => Promise<{ error?: string }>;
 }
 
 const supabase = createClient();
@@ -53,6 +62,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   settings: null,
   knowledgeSections: [],
   stickyNotes: [],
+  fixBankEntries: [],
   loading: true,
   initialized: false,
 
@@ -60,17 +70,19 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
     if (get().initialized) return;
     set({ initialized: true, loading: true });
 
-    const [issuesRes, activityRes, settingsRes, knowledgeRes, notesRes] = await Promise.all([
-      supabase.from("issues").select("*").order("created_at", { ascending: false }),
-      supabase
-        .from("activity_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200),
-      supabase.from("app_settings").select("*").eq("id", "default").maybeSingle(),
-      supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
-      supabase.from("sticky_notes").select("*").order("created_at", { ascending: false }),
-    ]);
+    const [issuesRes, activityRes, settingsRes, knowledgeRes, notesRes, fixBankRes] =
+      await Promise.all([
+        supabase.from("issues").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("activity_log")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(200),
+        supabase.from("app_settings").select("*").eq("id", "default").maybeSingle(),
+        supabase.from("knowledge_sections").select("*").order("sort_order", { ascending: true }),
+        supabase.from("sticky_notes").select("*").order("created_at", { ascending: false }),
+        supabase.from("fix_bank_entries").select("*").order("created_at", { ascending: false }),
+      ]);
 
     set({
       issues: (issuesRes.data as Issue[]) ?? [],
@@ -78,6 +90,7 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
       settings: (settingsRes.data as AppSettings | null) ?? null,
       knowledgeSections: (knowledgeRes.data as KnowledgeSection[]) ?? [],
       stickyNotes: (notesRes.data as StickyNote[]) ?? [],
+      fixBankEntries: (fixBankRes.data as FixBankEntry[]) ?? [],
       loading: false,
     });
 
@@ -199,6 +212,36 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
               const oldRow = payload.old as Partial<StickyNote>;
               return {
                 stickyNotes: state.stickyNotes.filter((n) => n.id !== oldRow.id),
+              };
+            }
+            return state;
+          });
+        }
+      )
+      .subscribe();
+
+    supabase
+      .channel("fix-bank-entries-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "fix_bank_entries" },
+        (payload) => {
+          set((state) => {
+            if (payload.eventType === "INSERT") {
+              const row = payload.new as FixBankEntry;
+              if (state.fixBankEntries.some((e) => e.id === row.id)) return state;
+              return { fixBankEntries: [row, ...state.fixBankEntries] };
+            }
+            if (payload.eventType === "UPDATE") {
+              const row = payload.new as FixBankEntry;
+              return {
+                fixBankEntries: state.fixBankEntries.map((e) => (e.id === row.id ? row : e)),
+              };
+            }
+            if (payload.eventType === "DELETE") {
+              const oldRow = payload.old as Partial<FixBankEntry>;
+              return {
+                fixBankEntries: state.fixBankEntries.filter((e) => e.id !== oldRow.id),
               };
             }
             return state;
@@ -334,6 +377,35 @@ export const useIssuesStore = create<IssuesState>((set, get) => ({
   deleteStickyNote: async (id) => {
     const { error } = await supabase.from("sticky_notes").delete().eq("id", id);
     if (error) return { error: error.message };
+    return {};
+  },
+
+  addFixBankEntry: async (input) => {
+    const { error } = await supabase.from("fix_bank_entries").insert({
+      issue_id: input.issue_id ?? null,
+      title: input.title,
+      category: input.category ?? null,
+      root_cause: input.root_cause ?? null,
+      troubleshooting_steps: input.troubleshooting_steps ?? null,
+      fix: input.fix,
+    });
+    if (error) return { error: error.message };
+    return {};
+  },
+
+  updateFixBankEntry: async (id, patch) => {
+    const { error } = await supabase.from("fix_bank_entries").update(patch).eq("id", id);
+    if (error) return { error: error.message };
+    set((state) => ({
+      fixBankEntries: state.fixBankEntries.map((e) => (e.id === id ? { ...e, ...patch } : e)),
+    }));
+    return {};
+  },
+
+  deleteFixBankEntry: async (id) => {
+    const { error } = await supabase.from("fix_bank_entries").delete().eq("id", id);
+    if (error) return { error: error.message };
+    set((state) => ({ fixBankEntries: state.fixBankEntries.filter((e) => e.id !== id) }));
     return {};
   },
 }));

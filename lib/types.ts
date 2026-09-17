@@ -72,6 +72,21 @@ export interface StickyNote {
   updated_at: string;
 }
 
+export interface FixBankEntry {
+  id: string;
+  issue_id: string | null;
+  title: string;
+  category: string | null;
+  root_cause: string | null;
+  troubleshooting_steps: string | null;
+  fix: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NewFixBankEntryInput = Pick<FixBankEntry, "title" | "fix"> &
+  Partial<Pick<FixBankEntry, "issue_id" | "category" | "root_cause" | "troubleshooting_steps">>;
+
 export type NewIssueInput = Pick<Issue, "title"> &
   Partial<
     Pick<

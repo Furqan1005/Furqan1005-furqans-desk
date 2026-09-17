@@ -9,6 +9,7 @@ import {
   Archive,
   StickyNote,
   Sparkles,
+  Wrench,
   Settings,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/due-this-week", label: "Due This Week", icon: CalendarClock },
   { href: "/archived", label: "Archived", icon: Archive },
   { href: "/notes", label: "Sticky Notes", icon: StickyNote },
+  { href: "/fix-bank", label: "Fix Bank", icon: Wrench },
   { href: "/desk-ai", label: "Desk AI", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

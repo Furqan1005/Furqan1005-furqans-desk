@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ChevronDown,
   Undo2,
+  Wrench,
 } from "lucide-react";
 
 import {
@@ -46,6 +47,7 @@ import { PriorityBadge } from "./priority-badge";
 import { EditIssueDialog } from "./edit-issue-dialog";
 import { AssigneeCell } from "./assignee-cell";
 import { DeadlineCell } from "./deadline-cell";
+import { FixBankEntryDialog } from "@/components/fixbank/fix-bank-entry-dialog";
 import {
   useIssuesStore,
   describeStatusChange,
@@ -128,6 +130,7 @@ export function IssueTable({
   const archiveIssue = useIssuesStore((s) => s.archiveIssue);
   const deleteIssue = useIssuesStore((s) => s.deleteIssue);
   const [editingIssue, setEditingIssue] = useState<Issue | null>(null);
+  const [documentingIssue, setDocumentingIssue] = useState<Issue | null>(null);
   const [extraColumns, setExtraColumns] = useState<string[]>([]);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -425,6 +428,10 @@ export function IssueTable({
                             Remove from parent
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onSelect={() => setDocumentingIssue(issue)}>
+                          <Wrench />
+                          Add to Fix Bank
+                        </DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => handleArchiveToggle(issue)}>
                           {issue.archived ? <ArchiveRestore /> : <Archive />}
                           {issue.archived ? "Unarchive" : "Archive"}
@@ -448,6 +455,14 @@ export function IssueTable({
           issue={editingIssue}
           open={!!editingIssue}
           onOpenChange={(open) => !open && setEditingIssue(null)}
+        />
+      )}
+
+      {documentingIssue && (
+        <FixBankEntryDialog
+          issue={documentingIssue}
+          open={!!documentingIssue}
+          onOpenChange={(open) => !open && setDocumentingIssue(null)}
         />
       )}
     </>
